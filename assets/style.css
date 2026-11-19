@@ -27,3 +27,16 @@ dt { color:#b6b9bd; } dd { margin:0; white-space:pre-wrap; }
 #moveBar { position:absolute; left:12px; top:105px; z-index:800; background:#1c1d1f; color:white; border:1px solid #f4cf58; padding:10px; border-radius:8px; font-size:13px; }
 #moveBar button { margin:4px; }
 .leaflet-control-attribution { color:#333; }
+.trip-panel { padding:16px 20px; border-bottom:1px solid var(--line); }
+.trip-heading { display:flex; align-items:center; justify-content:space-between; margin-bottom:8px; }
+.trip-heading h2 { font:600 16px "Segoe UI",sans-serif; margin:0; }
+.trip-panel button.secondary { font-size:12px; padding:6px 10px; }
+#tripList { display:grid; gap:3px; max-height:190px; overflow:auto; }
+.trip-link { display:flex; gap:8px; align-items:center; justify-content:space-between; text-align:left; background:transparent; color:#d1d3d5; font-size:14px; overflow-wrap:anywhere; }
+.trip-link[aria-pressed=true] { background:#302c20; color:#ffd458; box-shadow:inset 3px 0 #f3c845; }
+.trip-count { font:12px monospace; }
+#editTrip { margin-top:8px; }
+.choices { max-height:200px; overflow:auto; }
+.choices label { display:flex; align-items:center; gap:9px; margin:0; padding:6px 2px; }
+.choices input { width:16px; height:16px; flex:none; accent-color:#f3c845; }
+#tripError,#tripDeleteError { color:#ffda75; }

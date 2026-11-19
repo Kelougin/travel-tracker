@@ -23,6 +23,84 @@ function action(title, handler, cls) {
     button.onclick = handler;
     return button;
 }
+let trips = [], activeTrip = null, editingTrip = null;
+function choices(id, options, selected) {
+    const box = el(id);
+    box.replaceChildren();
+    for (const option of options) {
+        const label = node("label", "");
+        const input = document.createElement("input");
+        input.type = "checkbox";
+        input.value = option.id;
+        input.checked = selected.includes(option.id);
+        label.append(input, node("span", option.label || option.name));
+        box.append(label);
+    }
+}
+function checkedIds(id) {
+    return Array.from(el(id).querySelectorAll("input:checked"), input => input.value);
+}
+function selectTrip(id) {
+    activeTrip = id;
+    for (const filter of ["filter", "countryFilter", "cityFilter"]) el(filter).value = "";
+    render();
+    const markers = pins.getLayers();
+    if (markers.length) map.fitBounds(markers.map(marker => marker.getLatLng()), {padding:[35,35],maxZoom:16});
+}
+function renderTrips() {
+    const nav = el("tripList");
+    nav.replaceChildren();
+    const add = (name, id, count) => {
+        const button = action(name, () => selectTrip(id), "trip-link");
+        button.append(node("span", String(count), "trip-count"));
+        button.setAttribute("aria-pressed", String(activeTrip === id));
+        nav.append(button);
+    };
+    add("All destinations", null, places.length);
+    for (const trip of trips) add(trip.name, trip.id, trip.places.length);
+    el("editTrip").hidden = !activeTrip;
+}
+function openTrip(trip) {
+    editingTrip = trip?.id || null;
+    el("tripTitle").textContent = trip ? "Edit trip" : "New trip";
+    el("tripName").value = trip?.name || "";
+    el("tripError").textContent = "";
+    const options = places.map(p => ({id:p.id, label:[p.name,p.city,p.country].filter(Boolean).join(" · ")}));
+    choices("tripPlaces", options, trip?.places || []);
+    if (!places.length) el("tripPlaces").textContent = "Save destinations to this trip as you add them to the map.";
+    el("deleteTrip").hidden = !trip;
+    el("tripEditor").showModal();
+    el("tripName").focus();
+}
+el("newTrip").onclick = () => openTrip(null);
+el("editTrip").onclick = () => openTrip(trips.find(t => t.id === activeTrip));
+el("cancelTrip").onclick = () => el("tripEditor").close();
+el("tripForm").onsubmit = event => {
+    event.preventDefault();
+    const data = {id:editingTrip, name:el("tripName").value, places:checkedIds("tripPlaces")};
+    el("saveTrip").disabled = true;
+    journal.saveTrip(JSON.stringify(data), raw => {
+        el("saveTrip").disabled = false;
+        const result = JSON.parse(raw);
+        if (result.error) { el("tripError").textContent = result.error; return; }
+        el("tripEditor").close();
+        refresh(false, () => selectTrip(result.id));
+    });
+};
+el("deleteTrip").onclick = () => {
+    el("tripDeleteText").textContent = 'Remove “' + trips.find(t => t.id === editingTrip).name + '” from your trips? Its destinations will stay in your journal.';
+    el("tripDeleteError").textContent = "";
+    el("tripDeleteDialog").showModal();
+};
+el("keepTrip").onclick = () => el("tripDeleteDialog").close();
+el("confirmTripDelete").onclick = () => {
+    journal.removeTrip(editingTrip, error => {
+        if (error) { el("tripDeleteError").textContent = error; return; }
+        el("tripDeleteDialog").close();
+        el("tripEditor").close();
+        refresh(false, () => selectTrip(null));
+    });
+};
 function badge(key) {
     const [label, color] = categories[key];
     const result = node("span", label, "status");
@@ -42,6 +120,9 @@ function edit(p) {
     el("currency").value ||= "CAD";
     el("place_type").value ||= "Other";
     editing = p.id || null;
+    const assigned = editing ? trips.filter(t => t.places.includes(editing)).map(t => t.id) : [activeTrip];
+    choices("memberships", trips, assigned);
+    el("membershipsBox").hidden = !trips.length;
     el("editTitle").textContent = editing ? "Edit destination" : "New destination";
     el("placeName").value = p.name || "";
     el("location").value = p.location || "";
@@ -90,15 +171,19 @@ function geographicOptions(id, field, rows, title) {
 }
 function render() {
     finishMove();
-    const country = geographicOptions("countryFilter", "country", places, "All countries");
-    const inCountry = places.filter(p => !country || p.country.toLowerCase() === country);
+    renderTrips();
+    const trip = trips.find(t => t.id === activeTrip);
+    const members = trip ? new Set(trip.places) : null;
+    const collection = members ? places.filter(p => members.has(p.id)) : places;
+    const country = geographicOptions("countryFilter", "country", collection, "All countries");
+    const inCountry = collection.filter(p => !country || p.country.toLowerCase() === country);
     const city = geographicOptions("cityFilter", "city", inCountry, "All cities");
     const selected = el("filter").value;
     const visible = inCountry.filter(p => (!city || p.city.toLowerCase() === city) && (!selected || p.category === selected));
     el("places").replaceChildren();
     pins.clearLayers();
     el("total").textContent = places.length + (places.length === 1 ? " destination" : " destinations");
-    if (!visible.length) el("places").append(node("p", places.length ? "No destinations match these filters." : "Your saved places will appear here. Search for a place or click the map to add one.", "empty"));
+    if (!visible.length) el("places").append(node("p", trip && !collection.length ? "This trip is empty. Edit the trip to add saved places, or pin a new destination." : places.length ? "No destinations match these filters." : "Your saved places will appear here. Search for a place or click the map to add one.", "empty"));
     for (const p of visible) {
         const dot = node("span", "", "pin-dot");
         dot.style.backgroundColor = categories[p.category][1];
@@ -138,10 +223,12 @@ function render() {
         el("places").append(card);
     }
 }
-function refresh(first=false) {
+function refresh(first=false, afterRefresh=null) {
     journal.state(raw => {
         const state = JSON.parse(raw);
         places = state.places;
+        trips = state.trips || [];
+        el("newTrip").disabled = false;
         categories = state.categories;
         if (first) {
             for (const [key,[label]] of Object.entries(categories)) {
@@ -151,7 +238,8 @@ function refresh(first=false) {
             }
             if (places.length) map.fitBounds(places.map(p => [p.lat,p.lon]), {padding:[40,40],maxZoom:16});
         }
-        render();
+        if (afterRefresh) afterRefresh();
+        else render();
     });
 }
 new QWebChannel(qt.webChannelTransport, channel => {
@@ -192,6 +280,7 @@ el("editForm").onsubmit = e => {
     const record = {id:editing,name:el("placeName").value,location:el("location").value,
         category:el("category").value,lat:el("lat").valueAsNumber,lon:el("lon").valueAsNumber};
     record.osm_key = sourceKey;
+    record.trip_ids = checkedIds("memberships");
     for (const field of detailFields) record[field] = el(field).value;
     const submit = el("editForm").querySelector("footer button:last-child");
     submit.disabled = true;

@@ -2,7 +2,7 @@
 async function useEnglishBasemap(map, raster) {
     const canvas = document.createElement("canvas");
     if (!canvas.getContext("webgl2")) return;
-    const url = "https://tiles.openfreemap.org/styles/positron";
+    const url = "https://tiles.openfreemap.org/styles/bright";
     let layer;
     let timer;
     function fallback() {
@@ -22,7 +22,7 @@ async function useEnglishBasemap(map, raster) {
             }
         }
         layer = L.maplibreGL({style, interactive:false, attributionControl:{
-            customAttribution:'<a href="https://openfreemap.org/">OpenFreeMap</a> · OpenMapTiles · CARTO · <a href="https://www.openstreetmap.org/copyright">© OpenStreetMap</a>'
+            customAttribution:'<a href="https://openfreemap.org/">OpenFreeMap</a> · OpenMapTiles · <a href="https://www.openstreetmap.org/copyright">© OpenStreetMap</a>'
         }}).addTo(map);
         const gl = layer.getMaplibreMap();
         timer = setTimeout(fallback, 15000);
