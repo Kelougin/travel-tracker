@@ -72,7 +72,7 @@ class Backend(QObject):
             return
         url = QUrl(SEARCH_URL)
         params = QUrlQuery()
-        for name, value in (("q", query), ("format", "jsonv2"), ("limit", "6")):
+        for name, value in (("q", query), ("format", "jsonv2"), ("limit", "6"), ("addressdetails", "1"), ("accept-language", "en")):
             params.addQueryItem(name, value)
         url.setQuery(params)
         request = QNetworkRequest(url)
@@ -94,7 +94,12 @@ class Backend(QObject):
             matches = []
             for row in rows:
                 label = row["display_name"]
-                matches.append(dict(name=label.split(",")[0], location=label,
+                address = row.get("address", {})
+                city = next((address[k] for k in ("city", "town", "village", "municipality", "hamlet")
+                             if address.get(k)), "")
+                osm_key = f"{row['osm_type']}/{row['osm_id']}" if row.get("osm_type") and row.get("osm_id") else ""
+                matches.append(dict(city=city, country=address.get("country", ""), osm_key=osm_key,
+                                    name=label.split(",")[0], location=label,
                                     lat=coordinate(float(row["lat"]), 90),
                                     lon=coordinate(float(row["lon"]), 180)))
             payload = json.dumps({"matches": matches})

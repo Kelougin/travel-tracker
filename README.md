@@ -67,3 +67,11 @@ The journal is saved after each change as `destinations.json` in Qt's applicatio
 OpenStreetMap supplies map tiles. Explicit searches send the entered query to Nominatim. Both services need internet access. Saved destinations can still be viewed and edited offline. The app requests results only on submission, spaces network searches at least one second apart, and reuses identical results during a session. A compatible search endpoint can be configured with the `TRAVEL_SEARCH_URL` environment variable before launch.
 
 [OpenStreetMap attribution](https://www.openstreetmap.org/copyright) · [Tile usage](https://operations.osmfoundation.org/policies/tiles/) · [Nominatim usage](https://operations.osmfoundation.org/policies/nominatim/)
+
+## Destination details and map controls
+
+- Open **Details and notes** on a destination to see its type, city, country, address, visit status, estimated cost and notes. Choose **Edit** to change them. Cost is optional and has its own currency code (initially CAD). Choose a suggested type such as Restaurant or Landmark, or enter your own.
+- Select **Move pin**, drag the highlighted marker, then choose **Review** and **Save destination**. Canceling at either stage keeps the original coordinates. The address and place information remain editable when reviewing the new position.
+- Country, city and visit-status filters apply to both pins and the list. Search results fill in geographic fields when available. You can enter them for map clicks and older records. The city menu follows the selected country.
+- The journal checks for duplicates when saving. Matching OpenStreetMap object IDs identify repeat searches, including renamed entries. When an ID is missing, the app checks for the same name within 30 metres, ignoring letter case and repeated spaces.
+- Search requests English names. The map uses OpenFreeMap’s Positron vector style with English names where available, then Latin-script or local names. If the vector map cannot initialize or WebGL is unavailable, the standard OpenStreetMap raster layer supplies its original labels. Leaflet remains responsible for map interactions and pins.

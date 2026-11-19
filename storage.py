@@ -1,8 +1,9 @@
 """Validated, atomic local destination storage."""
 import json
 import os
+import re
 import tempfile
-from math import isfinite
+from math import cos, hypot, isfinite, radians
 from pathlib import Path
 from uuid import uuid4
 
@@ -28,8 +29,33 @@ def destination(data):
         raise ValueError("Enter a destination name.")
     if not isinstance(location, str) or not isinstance(category, str) or category not in CATEGORIES:
         raise ValueError("Invalid location or visit status.")
-    return dict(name=name.strip(), location=location.strip(), category=category,
+    extra = {}
+    for field in ("city", "country", "notes", "cost", "currency", "place_type", "osm_key"):
+        value = data.get(field, "")
+        if not isinstance(value, str):
+            raise ValueError(f"Invalid {field}.")
+        extra[field] = value.strip()
+    if extra["cost"] and not re.fullmatch(r"[0-9]{1,12}(?:\.[0-9]{1,2})?", extra["cost"]):
+        raise ValueError("Enter a positive amount or zero, with up to two decimal places.")
+    extra["currency"] = extra["currency"].upper() or "CAD"
+    if not re.fullmatch(r"[A-Z]{3}", extra["currency"]):
+        raise ValueError("Enter a three-letter currency code, such as CAD or JPY.")
+    extra["place_type"] = extra["place_type"] or "Other"
+    return dict(**extra, name=name.strip(), location=location.strip(), category=category,
                 lat=coordinate(data.get("lat"), 90), lon=coordinate(data.get("lon"), 180))
+
+
+def same_place(a, b):
+    if a["osm_key"] and b["osm_key"]:
+        return a["osm_key"] == b["osm_key"]
+    def normalized_name(place):
+        return " ".join(place["name"].casefold().split())
+    if normalized_name(a) != normalized_name(b):
+        return False
+    # Local-distance approximation in metres, including across the date line.
+    delta_lon = (a["lon"] - b["lon"] + 180) % 360 - 180
+    east = delta_lon * cos(radians((a["lat"] + b["lat"]) / 2))
+    return hypot(a["lat"] - b["lat"], east) * 111_195 <= 30
 
 
 class Store:
@@ -51,6 +77,12 @@ class Store:
         item = destination(data)
         if key is not None and key not in self.places:
             raise ValueError("This destination no longer exists.")
+        original = self.places.get(key)
+        for other_key, other in self.places.items():
+            if key != other_key and same_place(item, other):
+                if original and same_place(original, other):
+                    continue  # Keep pre-existing duplicates editable.
+                raise ValueError(f'Already saved as “{other["name"]}”. Edit the existing destination.')
         key = key or str(uuid4())
         updated = dict(self.places)
         updated[key] = dict(item, id=key)
