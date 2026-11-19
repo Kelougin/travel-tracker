@@ -41,7 +41,7 @@ class Backend(QObject):
 
     @Slot(result=str)
     def state(self):
-        return json.dumps({"places": list(self.store.places.values()), "categories": CATEGORIES})
+        return json.dumps({"places": list(self.store.places.values()), "categories": CATEGORIES, "trips": list(self.store.trips.values())})
 
     @Slot(str, result=str)
     def save(self, raw):
@@ -56,6 +56,22 @@ class Backend(QObject):
     def remove(self, key):
         try:
             self.store.remove(key)
+        except (OSError, ValueError) as error:
+            return str(error)
+        return ""
+
+    @Slot(str, result=str)
+    def saveTrip(self, raw):
+        try:
+            key = self.store.save_trip(json.loads(raw))
+            return json.dumps({"id": key})
+        except (OSError, ValueError, TypeError) as error:
+            return json.dumps({"error": str(error)})
+
+    @Slot(str, result=str)
+    def removeTrip(self, key):
+        try:
+            self.store.remove_trip(key)
         except (OSError, ValueError) as error:
             return str(error)
         return ""

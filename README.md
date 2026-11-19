@@ -74,4 +74,12 @@ OpenStreetMap supplies map tiles. Explicit searches send the entered query to No
 - Select **Move pin**, drag the highlighted marker, then choose **Review** and **Save destination**. Canceling at either stage keeps the original coordinates. The address and place information remain editable when reviewing the new position.
 - Country, city and visit-status filters apply to both pins and the list. Search results fill in geographic fields when available. You can enter them for map clicks and older records. The city menu follows the selected country.
 - The journal checks for duplicates when saving. Matching OpenStreetMap object IDs identify repeat searches, including renamed entries. When an ID is missing, the app checks for the same name within 30 metres, ignoring letter case and repeated spaces.
-- Search requests English names. The map uses OpenFreeMap’s Positron vector style with English names where available, then Latin-script or local names. If the vector map cannot initialize or WebGL is unavailable, the standard OpenStreetMap raster layer supplies its original labels. Leaflet remains responsible for map interactions and pins.
+- Search requests English names. The map uses OpenFreeMap’s full-color Bright vector style with English names where available, then Latin-script or local names. If the vector map cannot initialize or WebGL is unavailable, the standard OpenStreetMap raster layer supplies its original labels. Leaflet remains responsible for map interactions and pins.
+
+## Trip collections
+
+Select **New trip**, name it, and check any destinations already in your journal. Click a trip to show its pins and destination list. The map zooms to the trip, and you can narrow the selection further by status, country, or city. **All destinations** returns to the full journal.
+
+New pins start with the active trip selected. The destination editor lets you assign a place to several trips. **Edit trip** lets you rename a trip, add or remove places, or delete the collection. Removing a place from a trip or deleting the trip keeps the destination in your journal.
+
+The app reads earlier journals automatically. The next save writes the trip-aware JSON format in the same location.
