@@ -7,6 +7,7 @@ const tiles = L.tileLayer("https://tile.openstreetmap.org/{z}/{x}/{y}.png", {
 }).addTo(map);
 tiles.on("tileerror", () => { el("tileError").hidden = false; });
 tiles.on("tileload", () => { el("tileError").hidden = true; });
+useEnglishBasemap(map, tiles);
 L.control.scale({imperial:false}).addTo(map);
 const pins = L.layerGroup().addTo(map);
 let journal, places = [], categories = {}, editing = null, deleting = null;
@@ -31,7 +32,15 @@ function badge(key) {
     return result;
 }
 function focusPlace(p) { map.setView([p.lat,p.lon], 17); }
+const detailFields = ["country", "city", "place_type", "cost", "currency", "notes"];
+let sourceKey = "";
+let moving = null;
 function edit(p) {
+    finishMove();
+    sourceKey = p.osm_key || "";
+    for (const key of detailFields) el(key).value = p[key] || "";
+    el("currency").value ||= "CAD";
+    el("place_type").value ||= "Other";
     editing = p.id || null;
     el("editTitle").textContent = editing ? "Edit destination" : "New destination";
     el("placeName").value = p.name || "";
@@ -43,24 +52,83 @@ function edit(p) {
     el("editor").showModal();
     el("placeName").focus();
 }
+function finishMove() {
+    if (!moving) return;
+    moving.marker.dragging.disable();
+    moving.marker.setLatLng([moving.place.lat, moving.place.lon]);
+    moving.marker.getElement()?.classList.remove("moving");
+    el("moveBar").hidden = true;
+    moving = null;
+}
+function startMove(place, marker) {
+    finishMove();
+    focusPlace(place);
+    moving = {place, marker};
+    marker.getElement().classList.add("moving");
+    marker.dragging.enable();
+    el("moveBar").hidden = false;
+}
+el("cancelMove").onclick = finishMove;
+el("reviewMove").onclick = () => {
+    if (!moving) return;
+    const point = moving.marker.getLatLng().wrap();
+    edit({...moving.place, lat:+point.lat.toFixed(7), lon:+point.lng.toFixed(7)});
+};
+function geographicOptions(id, field, rows, title) {
+    const control = el(id);
+    const previous = control.value;
+    const options = new Map();
+    for (const p of rows) {
+        if (p[field]) options.set(p[field].toLowerCase(), p[field]);
+    }
+    control.replaceChildren(new Option(title, ""));
+    for (const [value, label] of [...options].sort((a,b) => a[1].localeCompare(b[1]))) {
+        control.add(new Option(label, value));
+    }
+    if (options.has(previous)) control.value = previous;
+    return control.value;
+}
 function render() {
+    finishMove();
+    const country = geographicOptions("countryFilter", "country", places, "All countries");
+    const inCountry = places.filter(p => !country || p.country.toLowerCase() === country);
+    const city = geographicOptions("cityFilter", "city", inCountry, "All cities");
     const selected = el("filter").value;
-    const visible = places.filter(p => !selected || p.category === selected);
+    const visible = inCountry.filter(p => (!city || p.city.toLowerCase() === city) && (!selected || p.category === selected));
     el("places").replaceChildren();
     pins.clearLayers();
     el("total").textContent = places.length + (places.length === 1 ? " destination" : " destinations");
-    if (!visible.length) el("places").append(node("p", places.length ? "No destinations with this status." : "Your saved places will appear here. Search for a place or click the map to add one.", "empty"));
+    if (!visible.length) el("places").append(node("p", places.length ? "No destinations match these filters." : "Your saved places will appear here. Search for a place or click the map to add one.", "empty"));
     for (const p of visible) {
-        const marker = L.circleMarker([p.lat,p.lon], {radius:9,color:"#fff",weight:2,fillColor:categories[p.category][1],fillOpacity:1,bubblingMouseEvents:false}).addTo(pins);
+        const dot = node("span", "", "pin-dot");
+        dot.style.backgroundColor = categories[p.category][1];
+        const marker = L.marker([p.lat, p.lon], {
+            title:p.name, draggable:false, autoPan:true,
+            icon:L.divIcon({className:"travel-pin", html:dot, iconSize:[24,24], iconAnchor:[12,12]})
+        }).addTo(pins);
         marker.bindTooltip(node("span", p.name));
-        marker.on("click", () => edit(p));
+        marker.on("click", () => { if (!moving) edit(p); });
         const card = node("article", "");
         card.append(node("h3", p.name), badge(p.category));
         if (p.location) card.append(node("div",p.location,"meta"));
         card.append(node("div",p.lat.toFixed(6) + ", " + p.lon.toFixed(6),"position"));
+        const details = node("details", "", "place-details");
+        details.append(node("summary", "Details and notes"));
+        const facts = node("dl", "");
+        const rows = [
+            ["Type", p.place_type], ["City", p.city], ["Country", p.country],
+            ["Address", p.location], ["Visit status", categories[p.category][0]],
+            ["Estimated cost", p.cost ? p.cost + " " + p.currency : ""],
+            ["Notes", p.notes]
+        ];
+        for (const [label, value] of rows) {
+            facts.append(node("dt",label), node("dd",value || "—"));
+        }
+        details.append(facts);
+        card.append(details);
         const actions = node("div","","actions");
         actions.append(action("Show on map", () => {focusPlace(p); marker.openTooltip();}),
-            action("Edit", () => edit(p)), action("Delete", () => {
+            action("Edit", () => edit(p)), action("Move pin", () => startMove(p,marker)), action("Delete", () => {
                 deleting = p.id;
                 el("deleteName").textContent = p.name;
                 el("deleteError").textContent = "";
@@ -98,7 +166,7 @@ new QWebChannel(qt.webChannelTransport, channel => {
     refresh(true);
 });
 map.on("click", e => {
-    if (!journal) return;
+    if (!journal || moving) return;
     const point = e.latlng.wrap();
     edit({lat:+point.lat.toFixed(7),lon:+point.lng.toFixed(7)});
 });
@@ -111,7 +179,7 @@ el("searchForm").onsubmit = e => {
     el("searchBtn").disabled = true;
     journal.search(query);
 };
-el("filter").onchange = render;
+for (const id of ["filter", "countryFilter", "cityFilter"]) el(id).onchange = render;
 el("cancel").onclick = () => el("editor").close();
 el("keep").onclick = () => el("deleteDialog").close();
 el("confirmDelete").onclick = () => journal.remove(deleting, err => {
@@ -123,13 +191,19 @@ el("editForm").onsubmit = e => {
     e.preventDefault();
     const record = {id:editing,name:el("placeName").value,location:el("location").value,
         category:el("category").value,lat:el("lat").valueAsNumber,lon:el("lon").valueAsNumber};
+    record.osm_key = sourceKey;
+    for (const field of detailFields) record[field] = el(field).value;
     const submit = el("editForm").querySelector("footer button:last-child");
     submit.disabled = true;
     journal.save(JSON.stringify(record), err => {
         submit.disabled = false;
         if (err) { el("editError").textContent = err; return; }
         el("editor").close();
-        el("filter").value = "";
+        if (el("filter").value !== record.category) el("filter").value = "";
+        for (const field of ["country", "city"]) {
+            const control = el(field + "Filter");
+            if (control.value !== record[field].trim().toLowerCase()) control.value = "";
+        }
         focusPlace(record);
         refresh();
     });
