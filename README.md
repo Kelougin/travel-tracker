@@ -12,11 +12,25 @@ Technologies: Main Language: Python, PySide6: Creates desktop window, forms and 
 
 AI Tool Used: ChatGPT ASTRA 6.2 Codex
 
-How AI Was Used:
+How AI Was Used: The AI was used to generated all the code, repo and part of the read me. I just tested really to make sure functions worked as intended and gave it prompts for what I want. I tried to be specific in prompts to reduce its autonomy so it didn't go off the rails which I know it can. I gave one prompt, test what was there and then I would make changes and add more to the application in the next prompt and then repeated.
 
-Screenshots:
+Prompt 1: Create a travel tracking desktop application using python. Create a repo. Dependencies are store in .venv. Project follow proper python gitignore. The application has Pyside6 for desktop, Leaflet.js for map, OpenStreetMap for imagery, JSON to save data locally and PyInstaller.  The interactive map allows user to zoom down streets and landmarks, click precise locations to place markers. Markers should be categorized by four color meaing: want to visit, not visited, visted would go again, visited once is enough. User can search for cities and addresses, attraction...etc. Have a place to manage Destination lets you see existing marker (include location) and mange them. Also create a readme.md on how to run the application a get it for development
 
-Future Improvements:
+Prompt 2: Make a check for duplicate destination. Keep the part of edit we had but add an option to drag a marker to adjust position. Make a notes section for the destination where user can add detail, estimated cost and other detail. This section should also show destination details. Make it so location can be assigned a type like restaurant, landmark..etc. Make it so pin can also be filtered by country and city. Make the map all english if possible. Change color scheme to a black, yellow, and silver
+
+Prompt 3: Keep the map english but give it color. Allow user to create trip collections and save destinations to that trip. Allow them to click a trip to show only the destinations saved to that trip. Allow them to edit the trips in the collection
+
+Refer to prompt.md for full chat
+
+Screenshots: <img width="1920" height="1021" alt="7a4fa41f09c7b033929c705683e5eac9" src="https://github.com/user-attachments/assets/17856533-6bbe-488b-9ae5-138210c49e36" />
+
+<img width="1919" height="1023" alt="43dc10bf6d35252650b0777ad682740b" src="https://github.com/user-attachments/assets/92056a70-7674-4096-bd0e-484172d965c8" />
+
+<img width="1920" height="1017" alt="09a8690ec6af5a25f84aacb347653fdd" src="https://github.com/user-attachments/assets/e1b3def8-6519-45a1-8fc1-dc03f0b68911" />
+
+Future Improvements: 1. Add itinerary function to trip planning feature so you can sort locations by days. 2. Add mobile support and way to transfer saved destinations between devices. 3. Integrate a way to suggest a recommend travel for each day
+
+Vibe Code Reflection:
 # Travel Tracker
 
 Keep a personal travel map on your desktop. Search for a city, street address, or attraction, or zoom in and click the exact point you want to remember. Your journal stays in a local JSON file.
