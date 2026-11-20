@@ -1,3 +1,22 @@
+# Project Information and Questions
+
+Project Name: Travel Track/Trip Planner
+
+Description: The application allows users to track place they have visited or want to visit and then plan trips using those locations. It main audience would be people who like to travel a lot or plan to go on trip.
+
+Purpose: I mainly built it for myself because I like to save locations around the world that maybe one day I could get to visit and I've wanted to make something like this for a little so I thought this would be a good to time to just. Kill two birds with one stone kind of thing. That's why I choose to build this. I'm also planning trip to Japan in 2028 which you can see by my AI saying Japan related things because I've used it to help me brainstorm and keep track of ideas.
+
+Features: Categorize places you want to visit or have visited by placing different color pins on the map or by searching a location. You can then create a trip and add place you want to go in that or maybe you have a place you want to visit again you can add that too.
+
+Technologies: Main Language: Python, PySide6: Creates desktop window, forms and menus, Leaflet.js for interactive map and pins, OpenStreetMap for map image, Json to save destination locally and PyInstaller to run application through executable 
+
+AI Tool Used: ChatGPT ASTRA 6.2 Codex
+
+How AI Was Used:
+
+Screenshots:
+
+Future Improvements:
 # Travel Tracker
 
 Keep a personal travel map on your desktop. Search for a city, street address, or attraction, or zoom in and click the exact point you want to remember. Your journal stays in a local JSON file.
